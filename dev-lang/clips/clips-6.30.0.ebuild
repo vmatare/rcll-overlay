@@ -22,4 +22,26 @@ RDEPEND="${DEPEND}"
 S="${WORKDIR}/${PF}.${SVNREL}"
 
 DOCS_BASE="${WORKDIR}/${PF}.${SVNREL}-doc"
-DOCS=( ${DOCS_BASE}/*.pdf ${DOCS_BASE}/html )
+
+src_prepare() {
+	mv "${DOCS_BASE}"/* "${S}"/documentation
+}
+
+src_install() {
+	cd "$S"
+
+	# The Makefile in the documentation subdir causes sandbox violations by writing to /usr/share ...
+	sed -i 's/SUBDIRS\s*=\s*clips\s\+x_window_system\s\+documentation\s*/SUBDIRS = clips x_window_system/' Makefile
+
+	# ... so we install documentation manually
+	DOCS=( documentation/*.pdf documentation/*.doc documentation/*.el )
+	DOCS=( ${DOCS[@]} $(find examples -type f) )
+
+	einstall
+	if use doc; then
+		for d in ${DOCS[@]}; do
+			dodoc $DOCS
+		done
+		dohtml -r documentation/html/*
+	fi
+}
